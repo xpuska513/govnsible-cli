@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+import importlib
+
 from govnsiblecli.modules.base.utils.display import init_logger
 from govnsiblecli.modules.base.utils import yaml_handler
 from govnsiblecli.modules.base.play_handler import PlayHandler
@@ -22,20 +24,35 @@ def playbook_handler(playbook_path, inventory_file):
     playbook_content = yaml_handler.load_file(playbook_path)
     inventory = InventoryBase(inventory_file)
     inventory.init_inventory()
-
+    executor_list = scan_executor()
     logger.info(f"Current inventory {inventory.groups} ")
     for play in playbook_content:
-        executor = "ssh"
+        executor_type = "ssh"
         logger.info(play.get('name'))
         play = PlayHandler(play, playbook_path)
-        connection_type = play.play_contents.get('connection')
-        host_group = play.play_contents.get('host_list')
-        if connection_type == 'local' and host_group == 'localhost':
+        connection_type = play.connection
+        hosts = play.hosts
+        if connection_type == 'local' and hosts == 'localhost':
             logger.info('Executing playbook locally')
-            executor = 'local'
+            executor_type = 'local'
+        print(executor_type)
+        executor = [item for item in executor_list if item['executor_name'] == executor_type]
+        print(executor)
+        executor_py_name = executor[0].get('executor_py_name')
+        exec_mod_handler = importlib.import_module(executor_py_name)
+        executor = exec_mod_handler.GovnsibleExecutor(executor_type)
         play_tasks = play.play_contents.get('tasks')
-        print(play_tasks)
-        print(scan_executor())
+        for task in play_tasks:
+            logger.info(task.get('name'))
+            module_reference = list(task.items())[1]
+            module_name = module_reference[0]
+            module_params = module_reference[1]
+            print(module_params)
+            print(module_name)
+            task_results = executor.execute_task(module_name,module_params)
+            logger.info(task_results)
+
+
     #
     #
     #     print("Before", play.play_facts)

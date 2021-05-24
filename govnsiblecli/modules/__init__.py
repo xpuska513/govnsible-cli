@@ -1,0 +1,2 @@
+class ModuleBase(object):
+    pass

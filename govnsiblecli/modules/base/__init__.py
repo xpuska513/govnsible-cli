@@ -9,7 +9,7 @@ class PlayBase(object):
         self.playbook_path = playbook_path
         self.inventory_path = inventory
         self.govnsible_pwd = os.getcwd()
-        self.host_exec_group = None
+        self.hosts = None
         self.connection = None
 
     def set_fact(self, fact_name, fact_value):

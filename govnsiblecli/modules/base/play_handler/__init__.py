@@ -18,7 +18,8 @@ class PlayHandler(PlayBase):
         logger.info(self.play_facts)
 
     def get_host(self):
-        self.host_exec_group = self.play_contents.get('hosts')
+        hosts = self.play_contents.get('hosts')
+        self.hosts = hosts
         self.connection = self.play_contents.get('connection')
         if self.connection:
             logger.info('Connection param is set to local, sending all tasks to executor type: local')

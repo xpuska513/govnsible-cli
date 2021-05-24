@@ -35,6 +35,5 @@ def scan_executor():
         print(mod_info)
         mod_dict = {'executor_name': mod_info.get('module_name'), 'executor_py_name': modname}
         executor_list.append(mod_dict)
-
-
+    return executor_list
 

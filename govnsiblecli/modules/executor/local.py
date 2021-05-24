@@ -1,3 +1,5 @@
+import importlib
+
 from . import ExecutorBase
 
 MOD_INFO = {
@@ -9,10 +11,18 @@ MOD_INFO = {
 def mod_info():
     return MOD_INFO
 
-class LocalExecutor(ExecutorBase):
+class GovnsibleExecutor(ExecutorBase):
     def __init__(self,*args):
-        super(LocalExecutor, self).__init__('local')
+        super(GovnsibleExecutor, self).__init__('local')
         self.connection_type = 'local'
 
-    def _execute_task(self, module_name):
-        pass
+    def execute_task(self, module_name, module_params):
+        module = [item for item in self.module_list if item['mod_name'] == module_name]
+        print(module)
+        mod_py_name = module[0].get('mod_py_name')
+        print(mod_py_name)
+        dynamic_module = importlib.import_module(mod_py_name)
+        mod_handler = dynamic_module.GovnsibleModule(module_params)
+        mod_handler.execute_task()
+        result = mod_handler.result
+        return result
