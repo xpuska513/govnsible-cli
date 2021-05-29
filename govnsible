@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import importlib
 
+from elevate import elevate
 from govnsiblecli.modules.base.utils.display import init_logger
 from govnsiblecli.modules.base.utils import yaml_handler
 from govnsiblecli.modules.base.play_handler import PlayHandler
@@ -44,6 +45,9 @@ def playbook_handler(playbook_path, inventory_file):
         play_tasks = play.play_contents.get('tasks')
         for task in play_tasks:
             logger.info(task.get('name'))
+            become = task.get('become')
+            if become:
+                elevate(graphical=False)
             module_reference = list(task.items())[1]
             module_name = module_reference[0]
             module_params = module_reference[1]

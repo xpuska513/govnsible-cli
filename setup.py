@@ -19,7 +19,8 @@ setup(
     packages=list(find_packages(govnsiblecli.__path__, govnsiblecli.__name__)),
     license='Creative Commons Attribution-Noncommercial-Share Alike license',
     scripts=[
-        'govnsible'
+        'govnsible',
+        'govnsible-agent'
     ],
     long_description=open('README.md').read(),
 )
