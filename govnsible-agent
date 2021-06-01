@@ -8,14 +8,17 @@ import requests
 import sys
 
 class GovnsibleAgent():
-    def __init__(self,govnsible_url,username,password):
+    def __init__(self,govnsible_url,username,password, exec_group=None,playbook_name=None):
         self.url = govnsible_url
         self.username = username
         self.password = password
         self.hostname = socket.gethostname()
         self.access_token = self.get_jwt_token()
         self.exec_group = "Test"
-
+        if not self.is_server_registerd():
+            self.server_uuid = self.register_server()
+        else:
+            self.server_uuid = self.get_server_uuid()
 
     def get_jwt_token(self):
         request = requests.post(f"{self.url}/api/v1/user/auth",json={'username': self.username, 'password_hash': self.password})
@@ -26,31 +29,82 @@ class GovnsibleAgent():
         return access_token
 
     def register_playbook(self, playbook_name):
-        request = requests.post(f"{self.url}/api/v1/playbooks", json={'playbook_name': playbook_name, 'execGroupName': self.exec_group})
+        request = requests.post(f"{self.url}/api/v1/playbooks", json={'playbook_name': playbook_name, 'execGroupName': self.exec_group}, headers={'Authorization': 'Bearer {}'.format(self.access_token)})
         if request.status_code != 200:
             logger.error("Failed to register playbook")
             sys.exit(255)
         print(request.json())
 
     def register_server(self):
-        request = requests.post(f"{self.url}/api/v1/server", json={'hostname': self.hostname, 'execGroupName': self.exec_group})
+        request = requests.post(f"{self.url}/api/v1/server", json={'hostname': self.hostname, 'execGroupName': self.exec_group}, headers={'Authorization': 'Bearer {}'.format(self.access_token)})
         if request.status_code != 200:
-            logger.error("Failed to register playbook")
+            logger.error("Failed to register server")
             sys.exit(255)
         serverUUID = request.json().get('serverUID')
         return serverUUID
 
     def is_server_registerd(self):
-        request = requests.get()
+        request = requests.get(f"{self.url}/api/v1/server", json={'hostname': self.hostname}, headers={'Authorization': 'Bearer {}'.format(self.access_token)})
+        if request.status_code not in [200,404]:
+            logger.error("Error")
+            sys.exit(255)
+        if request.status_code == 404:
+            return False
+        if request.json().get('message') == "OK":
+            return True
+        return False
+
+    def get_server_uuid(self):
+        request = requests.get(f"{self.url}/api/v1/server", json={'hostname': self.hostname}, headers={'Authorization': 'Bearer {}'.format(self.access_token)})
+        if request.status_code not in [200,404]:
+            logger.error("Error")
+            sys.exit(255)
+        if request.status_code == 404:
+            return None
+        return request.json().get('serverUID')
+
+
+    def register_exec_group(self):
+        request = requests.post(f"{self.url}/api/v1/execgroup", json={'groupname': self.exec_group},
+                               headers={'Authorization': 'Bearer {}'.format(self.access_token)})
+        if request.status_code != 200:
+            logger.error("Error")
+            sys.exit(255)
+        return True
+
+    def get_avail_playbooks(self):
+        request = requests.get(f"{self.url}/api/v1/playbooks", json={'groupname': self.exec_group},
+                                headers={'Authorization': 'Bearer {}'.format(self.access_token)})
+        if request.status_code not in [401,200]:
+            logger.error("Error")
+            sys.exit(255)
+        if request.status_code == 401:
+            logger.info("No playbooks to play")
+            return False
+        return request.json().get('playbook_name')
+
+
 def main():
     parser = argparse.ArgumentParser(description='Playbook executor')
     parser.add_argument('--master-url', type=str, help='master_url', required=True)
     parser.add_argument('--master-password', type=str, help='master_password', required=True)
     parser.add_argument('--master-username', type=str, help='master_password', required=True)
+
+    subparsers = parser.add_subparsers(help="Functions")
+
+    parser_register_exec = subparsers.add_parser('register-exec-group', help='Register exec group')
+    parser_register_exec.add_argument('--group-name', type=str, help ='Name of group')
+
+    parser_playbook_upload = subparsers.add_parser('upload-playbook', help='uploads_playbook')
+    parser_playbook_upload.add_argument('--playbook-path', type=str, help='Playbook-name')
+    parser_playbook_upload.add_argument('--playbook-name', type=str, help='path to playbook')
+
     args = parser.parse_args()
+    print(args)
     print(args.master_username, args.master_password, args.master_url)
     agent_handler = GovnsibleAgent(args.master_url, args.master_username, args.master_password)
     print(agent_handler.access_token)
+
 
 if __name__ == "__main__":
     main()
