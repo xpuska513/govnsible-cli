@@ -1,0 +1,56 @@
+#!/usr/bin/env python
+import socket
+
+from govnsiblecli.modules.base.utils.display import init_logger
+logger = init_logger("root")
+import argparse
+import requests
+import sys
+
+class GovnsibleAgent():
+    def __init__(self,govnsible_url,username,password):
+        self.url = govnsible_url
+        self.username = username
+        self.password = password
+        self.hostname = socket.gethostname()
+        self.access_token = self.get_jwt_token()
+        self.exec_group = "Test"
+
+
+    def get_jwt_token(self):
+        request = requests.post(f"{self.url}/api/v1/user/auth",json={'username': self.username, 'password_hash': self.password})
+        if request.status_code != 200:
+            logger.error("Failed to auth")
+            sys.exit(255)
+        access_token = request.json().get('access_token')
+        return access_token
+
+    def register_playbook(self, playbook_name):
+        request = requests.post(f"{self.url}/api/v1/playbooks", json={'playbook_name': playbook_name, 'execGroupName': self.exec_group})
+        if request.status_code != 200:
+            logger.error("Failed to register playbook")
+            sys.exit(255)
+        print(request.json())
+
+    def register_server(self):
+        request = requests.post(f"{self.url}/api/v1/server", json={'hostname': self.hostname, 'execGroupName': self.exec_group})
+        if request.status_code != 200:
+            logger.error("Failed to register playbook")
+            sys.exit(255)
+        serverUUID = request.json().get('serverUID')
+        return serverUUID
+
+    def is_server_registerd(self):
+        request = requests.get()
+def main():
+    parser = argparse.ArgumentParser(description='Playbook executor')
+    parser.add_argument('--master-url', type=str, help='master_url', required=True)
+    parser.add_argument('--master-password', type=str, help='master_password', required=True)
+    parser.add_argument('--master-username', type=str, help='master_password', required=True)
+    args = parser.parse_args()
+    print(args.master_username, args.master_password, args.master_url)
+    agent_handler = GovnsibleAgent(args.master_url, args.master_username, args.master_password)
+    print(agent_handler.access_token)
+
+if __name__ == "__main__":
+    main()

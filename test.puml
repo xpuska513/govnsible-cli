@@ -1,0 +1,22 @@
+@startuml
+class govnsiblecli.modules.executor.ExecutorBase {
+}
+class govnsiblecli.modules.executor.local.GovnsibleExecutor {
+}
+class govnsiblecli.modules.general.apt.GovnsibleModule {
+}
+class govnsiblecli.modules.ModuleBase {
+}
+class govnsiblecli.modules.general.file.GovnsibleModule {
+}
+class govnsiblecli.modules.general.lineinfile.GovnsibleModule {
+}
+class govnsiblecli.modules.general.shell.GovnsibleModule {
+}
+govnsiblecli.modules.executor.ExecutorBase <|-- govnsiblecli.modules.executor.local.GovnsibleExecutor
+govnsiblecli.modules.ModuleBase <|-- govnsiblecli.modules.general.apt.GovnsibleModule
+govnsiblecli.modules.ModuleBase <|-- govnsiblecli.modules.general.file.GovnsibleModule
+govnsiblecli.modules.ModuleBase <|-- govnsiblecli.modules.general.lineinfile.GovnsibleModule
+govnsiblecli.modules.ModuleBase <|-- govnsiblecli.modules.general.shell.GovnsibleModule
+@enduml
+
