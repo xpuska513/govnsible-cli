@@ -1,11 +1,15 @@
 #!/usr/bin/env python
+import shlex
 import socket
+import tarfile
 
 from govnsiblecli.modules.base.utils.display import init_logger
 logger = init_logger("root")
 import argparse
 import requests
 import sys
+import os
+import subprocess
 
 class GovnsibleAgent():
     def __init__(self,govnsible_url,username,password, exec_group=None,playbook_name=None):
@@ -84,10 +88,21 @@ class GovnsibleAgent():
         return request.json().get('playbook_name')
 
     def sync_playbooks(self,playbook_name):
-        request = requests.get("f{self.url}/api/v1/playbook_download{playbook_name}",headers={'Authorization': 'Bearer {}'.format(self.access_token)})
+        request = requests.get(f"{self.url}/api/v1/playbook_download{playbook_name}",headers={'Authorization': 'Bearer {}'.format(self.access_token)})
         if request.status_code not in [404,200]:
             logger.error("Error")
             sys.exit(255)
+        open(f"/opt/data/agnt_playbooks/{playbook_name}.tar.gz", "wb").write(request.content)
+        my_tar = tarfile.open(f"/opt/data/agnt_playbooks/{playbook_name}.tar.gz")
+        os.mkdir(f"/opt/data/agnt_playbooks/{playbook_name}")
+        my_tar.extractall(f"/opt/data/agnt_playbooks/{playbook_name}")
+        return f"/opt/data/agnt_playbooks/{playbook_name}.tar.gz"
+
+    def run_playbook(self,playbook_path):
+        shell_command = f"govnsible {playbook_path}"
+        command = shlex.split(shell_command)
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        return (result.stdout,result.stderr)
 
 def main():
     parser = argparse.ArgumentParser(description='Playbook executor')
@@ -101,6 +116,11 @@ def main():
     agent_handler = GovnsibleAgent(args.master_url, args.master_username, args.master_password)
     print(agent_handler.access_token)
     playbook_name = agent_handler.get_avail_playbooks()
+    playbook_path = agent_handler.sync_playbooks(playbook_name)
+    stdout,stderr = agent_handler.run_playbook(playbook_path)
+    logger.info(stdout)
+    logger.error(stderr)
+
 
 
 
