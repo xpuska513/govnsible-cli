@@ -83,27 +83,26 @@ class GovnsibleAgent():
             return False
         return request.json().get('playbook_name')
 
+    def sync_playbooks(self,playbook_name):
+        request = requests.get("f{self.url}/api/v1/playbook_download{playbook_name}",headers={'Authorization': 'Bearer {}'.format(self.access_token)})
+        if request.status_code not in [404,200]:
+            logger.error("Error")
+            sys.exit(255)
 
 def main():
     parser = argparse.ArgumentParser(description='Playbook executor')
-    parser.add_argument('--master-url', type=str, help='master_url', required=True)
-    parser.add_argument('--master-password', type=str, help='master_password', required=True)
-    parser.add_argument('--master-username', type=str, help='master_password', required=True)
-
-    subparsers = parser.add_subparsers(help="Functions")
-
-    parser_register_exec = subparsers.add_parser('register-exec-group', help='Register exec group')
-    parser_register_exec.add_argument('--group-name', type=str, help ='Name of group')
-
-    parser_playbook_upload = subparsers.add_parser('upload-playbook', help='uploads_playbook')
-    parser_playbook_upload.add_argument('--playbook-path', type=str, help='Playbook-name')
-    parser_playbook_upload.add_argument('--playbook-name', type=str, help='path to playbook')
+    parser.add_argument('--master-url', type=str, help='master_url')
+    parser.add_argument('--master-password', type=str, help='master_password')
+    parser.add_argument('--master-username', type=str, help='master_password')
 
     args = parser.parse_args()
     print(args)
     print(args.master_username, args.master_password, args.master_url)
     agent_handler = GovnsibleAgent(args.master_url, args.master_username, args.master_password)
     print(agent_handler.access_token)
+    playbook_name = agent_handler.get_avail_playbooks()
+
+
 
 
 if __name__ == "__main__":
